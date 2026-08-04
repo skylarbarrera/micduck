@@ -1,4 +1,4 @@
-// micduck — fade system output volume down while the microphone is live, fade back when it stops.
+// micduck: fade system output volume down while the microphone is live, fade back when it stops.
 //
 // Trigger: CoreAudio's kAudioDevicePropertyDeviceIsRunningSomewhere on the default *input*
 // device. This flips whenever any process opens the mic, so it tracks Monologue's actual
@@ -99,6 +99,11 @@ private func channelVolumeAddr(_ ch: UInt32) -> AudioObjectPropertyAddress {
         mElement: ch)
 }
 
+// Last value we set ourselves, read back from the device so hardware quantization
+// doesn't make our own write look like a user adjustment.
+let lastSetLock = NSLock()
+var lastSetVolume: Float? = nil
+
 func getVolume(_ dev: AudioDeviceID) -> Float? {
     var v: Float32 = 0
     var size = UInt32(MemoryLayout<Float32>.size)
@@ -121,21 +126,31 @@ func getVolume(_ dev: AudioDeviceID) -> Float? {
 func setVolume(_ dev: AudioDeviceID, _ value: Float) -> Bool {
     var v = Float32(max(0, min(1, value)))
     let size = UInt32(MemoryLayout<Float32>.size)
+    var wrote = false
+
     var a = mainVolumeAddr()
     var mainSettable = DarwinBoolean(false)
     if AudioObjectHasProperty(dev, &a),
-       AudioObjectIsPropertySettable(dev, &a, &mainSettable) == noErr, mainSettable.boolValue {
-        if AudioObjectSetPropertyData(dev, &a, 0, nil, size, &v) == noErr { return true }
+       AudioObjectIsPropertySettable(dev, &a, &mainSettable) == noErr, mainSettable.boolValue,
+       AudioObjectSetPropertyData(dev, &a, 0, nil, size, &v) == noErr {
+        wrote = true
     }
-    var ok = false
-    for ch in UInt32(1)...UInt32(2) {
-        var ca = channelVolumeAddr(ch)
-        var settable = DarwinBoolean(false)
-        if AudioObjectHasProperty(dev, &ca),
-           AudioObjectIsPropertySettable(dev, &ca, &settable) == noErr, settable.boolValue,
-           AudioObjectSetPropertyData(dev, &ca, 0, nil, size, &v) == noErr { ok = true }
+    if !wrote {
+        for ch in UInt32(1)...UInt32(2) {
+            var ca = channelVolumeAddr(ch)
+            var settable = DarwinBoolean(false)
+            if AudioObjectHasProperty(dev, &ca),
+               AudioObjectIsPropertySettable(dev, &ca, &settable) == noErr, settable.boolValue,
+               AudioObjectSetPropertyData(dev, &ca, 0, nil, size, &v) == noErr { wrote = true }
+        }
     }
-    return ok
+
+    // Remember what the device actually landed on, not what we asked for.
+    if wrote {
+        let actual = getVolume(dev) ?? Float(v)
+        lastSetLock.lock(); lastSetVolume = actual; lastSetLock.unlock()
+    }
+    return wrote
 }
 
 // ---------- fade engine ----------
@@ -244,7 +259,7 @@ func duck() {
     guard let out = defaultDevice(input: false) else { return }
     guard savedVolume == nil else { log("already ducked"); return }
     guard consumeGateToken() else {
-        log("mic hot but no recent right-Option — assuming call, not ducking")
+        log("mic hot but no recent right-Option: assuming call, not ducking")
         return
     }
     guard let cur = getVolume(out), cur > 0.01 else { log("output already silent"); return }
@@ -274,6 +289,18 @@ func restore() {
     }
 }
 
+/// Stop managing the current duck without moving the volume. Used when the user takes
+/// manual control, or when the output device changes and our saved level no longer
+/// refers to the hardware we'd be restoring.
+func abandonDuck(_ why: String) {
+    guard savedVolume != nil else { return }
+    savedVolume = nil
+    duckEpoch += 1
+    generation += 1   // cancel any fade still in flight
+    try? FileManager.default.removeItem(at: stateURL)
+    log("abandoning duck: \(why)")
+}
+
 // ---------- wiring ----------
 
 guard var inDev = defaultDevice(input: true) else {
@@ -296,13 +323,50 @@ if let s = try? String(contentsOf: stateURL, encoding: .utf8),
     try? FileManager.default.removeItem(at: stateURL)
 }
 
+// While ducked, watch for the user moving the volume themselves (media keys, menu bar,
+// Control Center). Their intent beats ours, so we stop managing that duck rather than
+// snapping them back on mic-off. Compares against the value we last wrote, so our own
+// fade steps aren't mistaken for manual input.
+let manualEpsilon: Float = 0.02
+var volumeListenerDevice: AudioDeviceID? = nil
+
+func attachVolumeListener(_ dev: AudioDeviceID) {
+    guard volumeListenerDevice != dev else { return }
+    var a = mainVolumeAddr()
+    guard AudioObjectHasProperty(dev, &a) else { return }
+    let err = AudioObjectAddPropertyListenerBlock(dev, &a, work) { _, _ in
+        guard savedVolume != nil else { return }
+        guard let observed = getVolume(dev) else { return }
+        lastSetLock.lock(); let ours = lastSetVolume; lastSetLock.unlock()
+        guard let ours else { return }
+        if abs(observed - ours) > manualEpsilon {
+            abandonDuck(String(format: "volume moved to %.2f by hand (we set %.2f)", observed, ours))
+        }
+    }
+    if err == noErr { volumeListenerDevice = dev; log("volume listener on \(deviceName(dev))") }
+}
+if let o = outDev { attachVolumeListener(o) }
+
+// If the output device changes mid-duck, our saved level belongs to the old hardware.
+var defOutAddr = AudioObjectPropertyAddress(
+    mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+    mScope: kAudioObjectPropertyScopeGlobal,
+    mElement: kAudioObjectPropertyElementMain)
+AudioObjectAddPropertyListenerBlock(systemObject(), &defOutAddr, work) { _, _ in
+    guard let newOut = defaultDevice(input: false), newOut != volumeListenerDevice else { return }
+    log("default output changed -> \(deviceName(newOut))")
+    abandonDuck("output device changed")
+    volumeListenerDevice = nil
+    attachVolumeListener(newOut)
+}
+
 // Fail loudly rather than silently degrading to ducking every call.
 if cfg.gated && !cfg.selftest {
     if installGateTap() {
         print("gate: right-Option (keycode \(cfg.gateKeyCode)), window \(Int(cfg.gateMs))ms")
     } else {
         FileHandle.standardError.write("""
-        micduck: could not create the event tap — this binary needs Accessibility permission.
+        micduck: could not create the event tap. This binary needs Accessibility permission.
           System Settings > Privacy & Security > Accessibility, and add:
           \(CommandLine.arguments[0])
         Re-run with --no-gate to duck on ANY mic use (calls included).\n
@@ -310,7 +374,7 @@ if cfg.gated && !cfg.selftest {
         exit(1)
     }
 } else if !cfg.gated {
-    print("gate: DISABLED — will duck for any mic use, including calls")
+    print("gate: DISABLED, will duck for any mic use, including calls")
 }
 
 var listening = false

@@ -22,7 +22,7 @@ test: micduck
 probe: micprobe
 	./micprobe
 
-# Opens the mic with no keypress — volume should not move.
+# Opens the mic with no keypress. Volume should not move.
 negtest-run: negtest
 	./negtest
 

@@ -20,13 +20,13 @@ for arg in "$@"; do
   esac
 done
 
-command -v swiftc >/dev/null || { echo "swiftc not found — install the Xcode command line tools: xcode-select --install" >&2; exit 1; }
+command -v swiftc >/dev/null || { echo "swiftc not found. Install the Xcode command line tools: xcode-select --install" >&2; exit 1; }
 
-echo "building…"
+echo "building..."
 ( cd "$SRC_DIR" && swiftc -O -o micduck micduck.swift )
 
-echo "verifying…"
-"$SRC_DIR/micduck" --selftest >/dev/null || { echo "selftest FAILED — not installing" >&2; exit 1; }
+echo "verifying..."
+"$SRC_DIR/micduck" --selftest >/dev/null || { echo "selftest FAILED, not installing" >&2; exit 1; }
 echo "  selftest ok"
 
 mkdir -p "$BIN_DIR"
