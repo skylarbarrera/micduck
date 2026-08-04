@@ -1,0 +1,27 @@
+micduck.swift
+  s_449b159d6d42c8::t_560ddb210800d7 102-106
+  s_449b159d6d42c8::t_b2ac9a010989e5 129-130,134-136,138-145,147-153
+  s_449b159d6d42c8::t_80bcebcd966228 326-362
+  s_449b159d6d42c8::t_5d726b971791ba 292-303
+README.md
+  s_449b159d6d42c8::t_7943839dad3f8a 73-95
+  s_449b159d6d42c8::t_4c197a0ee1d908 124-136,138-139
+  s_449b159d6d42c8::t_545d62ff499251 5-7
+  s_449b159d6d42c8::t_ea338a2884e1b1 49-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "dbc4cc49f1c4201a9804d5afc33f5097d482bc69",
+  "prompts": {},
+  "sessions": {
+    "s_449b159d6d42c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f1afaf7-0bfe-4c08-9083-583ef5234123",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Skylar Barrera <skylar.barrera@gmail.com>"
+    }
+  }
+}
