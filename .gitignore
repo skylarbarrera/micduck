@@ -1,0 +1,8 @@
+# compiled binaries
+micduck
+micprobe
+negtest
+*.dSYM/
+*.o
+
+.DS_Store
