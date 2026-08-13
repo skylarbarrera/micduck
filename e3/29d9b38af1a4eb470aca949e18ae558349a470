@@ -1,0 +1,46 @@
+negtest.swift
+  s_40d62abbb97157::t_ce8f7c3008a063 2,26,31
+README.md
+  s_40d62abbb97157::t_3d80e0678cb86e 10,18-20,23-24,27-28,30,32-35,37,55,62,67,69
+  s_40d62abbb97157::t_42d31f4f44f55d 63-64,66
+  s_40d62abbb97157::t_e451d4d851bff9 38-39
+  s_40d62abbb97157::t_2a591dc02305a2 57-60
+  s_40d62abbb97157::t_e214c07d1bf7f2 13,22,50
+  s_40d62abbb97157::t_eded94ed5409dc 15-16
+  s_40d62abbb97157::t_0d8875e70874b5 5-6
+  s_40d62abbb97157::t_d6b6c88334796e 25
+micduck.swift
+  s_449b159d6d42c8::t_5d726b971791ba 292-303
+  s_449b159d6d42c8::t_b2ac9a010989e5 129-130,134-136,138-145,147-153
+  s_40d62abbb97157::t_ce8f7c3008a063 1,262,369,377
+  s_449b159d6d42c8::t_80bcebcd966228 326-362
+  s_449b159d6d42c8::t_560ddb210800d7 102-106
+Makefile
+  s_40d62abbb97157::t_ce8f7c3008a063 25
+install.sh
+  s_40d62abbb97157::t_ce8f7c3008a063 23,25,28-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e329d9b38af1a4eb470aca949e18ae558349a470",
+  "prompts": {},
+  "sessions": {
+    "s_40d62abbb97157": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5ead43d-cfcd-47d6-835e-1ca25e121f87",
+        "model": "claude-opus-5"
+      },
+      "human_author": null
+    },
+    "s_449b159d6d42c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f1afaf7-0bfe-4c08-9083-583ef5234123",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Skylar Barrera <skylar.barrera@gmail.com>"
+    }
+  }
+}
