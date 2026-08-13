@@ -1,0 +1,36 @@
+micduck.swift
+  s_40d62abbb97157::t_2f57aa43855797 366-384
+  s_40d62abbb97157::t_d38fbfffb503ec 14
+README.md
+  s_40d62abbb97157::t_77dd2b3468466c 61-62,65-66,68-69
+  s_40d62abbb97157::t_acef5d903c951e 26-27
+  s_40d62abbb97157::t_57e7cf11fd013e 15-16
+  s_40d62abbb97157::t_9417cf508b4399 32-33
+  s_40d62abbb97157::t_82059bbb81d13d 54
+  s_40d62abbb97157::t_4ba3552b80c138 40-41
+  s_40d62abbb97157::t_17c3a7eced3c06 36
+  s_40d62abbb97157::t_ba07b0cb49e950 23-24
+  s_40d62abbb97157::t_db28ca73f02cbd 42
+  s_40d62abbb97157::t_6e5b4232057362 6
+install.sh
+  s_40d62abbb97157::t_9b819bfa049ac0 28-38
+sign-setup.sh
+  s_40d62abbb97157::t_3e9b746b3bba23 28-30,32-33
+  s_40d62abbb97157::t_b5d8fb38ed6e73 1-27,31,34-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "97c03707e41e1ff61007508a30b190256fe5d4bf",
+  "prompts": {},
+  "sessions": {
+    "s_40d62abbb97157": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5ead43d-cfcd-47d6-835e-1ca25e121f87",
+        "model": "claude-opus-5"
+      },
+      "human_author": null
+    }
+  }
+}
