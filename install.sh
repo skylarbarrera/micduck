@@ -25,6 +25,17 @@ command -v swiftc >/dev/null || { echo "swiftc not found. Install the Xcode comm
 echo "building..."
 ( cd "$SRC_DIR" && swiftc -O -o micduck micduck.swift )
 
+# Sign with a stable identity if one exists. Without it the binary is ad-hoc signed, which ties
+# the Accessibility grant to this exact build, so the next rebuild silently revokes it.
+SIGN_ID="${SIGN_ID:-micduck-selfsigned}"
+if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
+  codesign --force --sign "$SIGN_ID" --identifier micduck "$SRC_DIR/micduck"
+  echo "  signed with $SIGN_ID"
+else
+  echo "  note: no '$SIGN_ID' identity found, falling back to an ad-hoc signature."
+  echo "        the Accessibility grant will break on every rebuild. run ./sign-setup.sh once to fix."
+fi
+
 echo "verifying..."
 "$SRC_DIR/micduck" --selftest >/dev/null || { echo "selftest FAILED, not installing" >&2; exit 1; }
 echo "  selftest ok"

@@ -11,6 +11,7 @@ import Foundation
 import CoreAudio
 import AudioToolbox
 import CoreGraphics
+import ApplicationServices
 
 // ---------- config ----------
 
@@ -362,6 +363,25 @@ AudioObjectAddPropertyListenerBlock(systemObject(), &defOutAddr, work) { _, _ in
 
 // Fail loudly rather than silently degrading to ducking every call.
 if cfg.gated && !cfg.selftest {
+    // Check trust separately from the tap. CGEventTapCreate can hand back a live tap that
+    // never receives an event, so the tap succeeding is not proof we're authorized. That
+    // gap opens every time the binary is replaced: an ad-hoc signature pins the grant to
+    // the exact cdhash, so a rebuild silently invalidates it while the old entry still
+    // shows as checked in System Settings.
+    guard AXIsProcessTrusted() else {
+        FileHandle.standardError.write("""
+        micduck: not trusted for Accessibility, so the right-Option gate can never arm.
+          This usually means the binary was rebuilt: an ad-hoc signature ties the grant to
+          the exact binary, so replacing it invalidates the old grant even though the entry
+          still looks enabled.
+          Fix: System Settings > Privacy & Security > Accessibility, remove the old entry,
+          then re-add:
+          \(CommandLine.arguments[0])
+          To stop this recurring on every rebuild, run ./sign-setup.sh once.
+        Re-run with --no-gate to duck on ANY mic use (calls included).\n
+        """.data(using: .utf8)!)
+        exit(1)
+    }
     if installGateTap() {
         print("gate: right-Option (keycode \(cfg.gateKeyCode)), window \(Int(cfg.gateMs))ms")
     } else {
