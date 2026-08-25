@@ -63,6 +63,8 @@ if [ "$WANT_AGENT" = "1" ]; then
   <array>
     <string>$BIN_DIR/micduck</string>
     <string>--verbose</string>
+    <string>--gate-key</string>
+    <string>${MICDUCK_GATE_KEYS:-61,54}</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

@@ -21,7 +21,7 @@ struct Config {
     var upMs: Double = 400        // fade-in duration
     var verbose = false
     var selftest = false
-    var gateKeyCode: Int64 = 61    // kVK_RightOption
+    var gateKeyCodes: [Int64] = [61]  // kVK_RightOption; --gate-key accepts a comma list (61,54 = Monologue + Nix)
     var gateMs: Double = 2500      // mic must go hot within this long after a gate-key event
     var gated = true               // false => duck for *any* mic use (calls included)
     // Watchdog only exists to catch a missed MIC-OFF. Generous, because hands-free
@@ -40,7 +40,11 @@ do {
         case "--verbose", "-v": cfg.verbose = true
         case "--selftest": cfg.selftest = true; cfg.verbose = true; cfg.gated = false
         case "--gate-ms": if let v = it.next(), let f = Double(v) { cfg.gateMs = max(0, f) }
-        case "--gate-key": if let v = it.next(), let k = Int64(v) { cfg.gateKeyCode = k }
+        case "--gate-key":
+            if let v = it.next() {
+                let keys = v.split(separator: ",").compactMap { Int64($0.trimmingCharacters(in: .whitespaces)) }
+                if !keys.isEmpty { cfg.gateKeyCodes = keys }
+            }
         case "--no-gate": cfg.gated = false
         case "--max-duck-ms": if let v = it.next(), let f = Double(v) { cfg.maxDuckMs = max(1000, f) }
         default: FileHandle.standardError.write("unknown arg: \(a)\n".data(using: .utf8)!); exit(2)
@@ -224,7 +228,7 @@ let tapCallback: CGEventTapCallBack = { _, type, event, _ in
         return Unmanaged.passUnretained(event)
     }
     if type == .flagsChanged,
-       event.getIntegerValueField(.keyboardEventKeycode) == cfg.gateKeyCode {
+       cfg.gateKeyCodes.contains(event.getIntegerValueField(.keyboardEventKeycode)) {
         noteGateKey()
     }
     return Unmanaged.passUnretained(event)
@@ -383,7 +387,7 @@ if cfg.gated && !cfg.selftest {
         exit(1)
     }
     if installGateTap() {
-        print("gate: right-Option (keycode \(cfg.gateKeyCode)), window \(Int(cfg.gateMs))ms")
+        print("gate: keycodes \(cfg.gateKeyCodes.map(String.init).joined(separator: ",")), window \(Int(cfg.gateMs))ms")
     } else {
         FileHandle.standardError.write("""
         micduck: could not create the event tap. This binary needs Accessibility permission.
